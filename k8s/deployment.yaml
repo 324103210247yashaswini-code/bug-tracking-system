@@ -1,0 +1,21 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bug-tracking-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bug-tracking
+  template:
+    metadata:
+      labels:
+        app: bug-tracking
+    spec:
+      containers:
+        - name: bug-tracking
+          image: bug-tracking-system:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
