@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Tracking System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f5f9;
+            margin: 0;
+            padding: 30px;
+            color: #222;
+        }
+        .container {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+        h1 { color: #234e91; }
+        input, textarea, select, button {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 11px;
+            margin: 7px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            background: #234e91;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .bug {
+            background: #f2f5f9;
+            padding: 14px;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+        .delete { background: #c0392b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Bug Tracking System</h1>
+    <h2>Report a Bug</h2>
+
+    <form id="bugForm">
+        <input id="title" placeholder="Bug title" required>
+        <textarea id="description" placeholder="Description" required></textarea>
+
+        <select id="priority">
+            <option>LOW</option>
+            <option selected>MEDIUM</option>
+            <option>HIGH</option>
+            <option>CRITICAL</option>
+        </select>
+
+        <button type="submit">Add Bug</button>
+    </form>
+
+    <h2>Reported Bugs</h2>
+    <div id="bugs">Loading bugs...</div>
+</div>
+
+<script>
+const api = '/api/bugs';
+
+async function loadBugs() {
+    const response = await fetch(api);
+    const bugs = await response.json();
+    const container = document.getElementById('bugs');
+    container.replaceChildren();
+
+    if (bugs.length === 0) {
+        container.textContent = 'No bugs reported yet.';
+        return;
+    }
+
+    bugs.forEach(bug => {
+        const card = document.createElement('div');
+        card.className = 'bug';
+
+        const heading = document.createElement('h3');
+        heading.textContent = '#' + bug.id + ' - ' + bug.title;
+
+        const description = document.createElement('p');
+        description.textContent = bug.description;
+
+        const details = document.createElement('p');
+        details.textContent =
+            'Priority: ' + bug.priority + ' | Status: ' + bug.status;
+
+        const status = document.createElement('select');
+        ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            status.appendChild(option);
+        });
+        status.value = bug.status;
+
+        const update = document.createElement('button');
+        update.textContent = 'Update Status';
+        update.onclick = async () => {
+            const result = await fetch(api + '/' + bug.id, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: bug.title,
+                    description: bug.description,
+                    priority: bug.priority,
+                    status: status.value
+                })
+            });
+            if (result.ok) loadBugs();
+            else alert('Could not update bug.');
+        };
+
+        const remove = document.createElement('button');
+        remove.className = 'delete';
+        remove.textContent = 'Delete Bug';
+        remove.onclick = async () => {
+            if (!confirm('Delete this bug?')) return;
+            const result = await fetch(api + '/' + bug.id, {
+                method: 'DELETE'
+            });
+            if (result.ok) loadBugs();
+            else alert('Could not delete bug.');
+        };
+
+        card.append(heading, description, details, status, update, remove);
+        container.appendChild(card);
+    });
+}
+
+document.getElementById('bugForm').addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const bug = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        priority: document.getElementById('priority').value,
+        status: 'OPEN'
+    };
+
+    const response = await fetch(api, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(bug)
+    });
+
+    if (response.ok) {
+        event.target.reset();
+        loadBugs();
+    } else {
+        alert('Could not add bug.');
+    }
+});
+
+loadBugs();
+</script>
+</body>
+</html>
